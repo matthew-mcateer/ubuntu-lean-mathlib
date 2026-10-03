@@ -9,11 +9,11 @@ See [UPGRADING.md](UPGRADING.md) for the maintainer upgrade and validation
 procedure.
 
 ```sh
-docker pull ghcr.io/zhihan/ubuntu-lean-mathlib:lean4.34.0-mathlib4.34.0-comparator-d03acab
+docker pull ghcr.io/matthew-mcateer/ubuntu-lean-mathlib:lean4.34.0-mathlib4.34.0-comparator-d03acab
 ```
 
 Immutable reference:
 
 ```text
-ghcr.io/zhihan/ubuntu-lean-mathlib@sha256:a6b94becd79936d9c8ea6160e45f0ba937bf3c328886cbf82c2fe8b18fc90171
+ghcr.io/matthew-mcateer/ubuntu-lean-mathlib@sha256:eff8517cdf3d3ec8389f5e0495f85a58aaaeef52c2f3859a8a7f473562e2f0f9
 ```

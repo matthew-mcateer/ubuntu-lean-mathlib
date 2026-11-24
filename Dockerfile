@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime \
     && rm -rf /var/lib/apt/lists/*
 
-ENV LEAN_VERSION=v4.34.0
+ENV LEAN_VERSION=v4.35.0
 ENV ELAN_HOME=/root/.elan
 ENV PATH=/root/.elan/bin:$PATH
 
@@ -43,7 +43,7 @@ RUN lake update && lake exe cache get \
     && chown -R root:root /workspace/.lake/packages \
     && chmod -R o+rX,o-w /workspace/.lake/packages
 
-ENV COMPARATOR_REV=d03acab154d269c06e60e4de7e4cc85deebff94b
+ENV COMPARATOR_REV=e3dcf3083fc53d44b27a4431fabf7d43181583f5
 RUN git clone https://github.com/leanprover/comparator /tmp/comparator \
     && cd /tmp/comparator \
     && git checkout --detach "${COMPARATOR_REV}" \

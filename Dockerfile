@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime \
     && rm -rf /var/lib/apt/lists/*
 
-ENV LEAN_VERSION=v4.35.0
+ENV LEAN_VERSION=v4.36.0
 ENV ELAN_HOME=/root/.elan
 ENV PATH=/root/.elan/bin:$PATH
 

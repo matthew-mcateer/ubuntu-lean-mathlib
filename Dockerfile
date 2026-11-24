@@ -1,14 +1,14 @@
 FROM public.ecr.aws/docker/library/ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
 
 LABEL org.opencontainers.image.title="ubuntu-lean-mathlib"
-LABEL org.opencontainers.image.description="Ubuntu with Lean, Mathlib, comparator, and verifier dependencies"
+LABEL org.opencontainers.image.description="Ubuntu with Lean 4.36, Mathlib, Lake proof checking, and verifier dependencies"
 LABEL org.opencontainers.image.source="https://github.com/matthew-mcateer/ubuntu-lean-mathlib"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       curl git ca-certificates build-essential python3 python3-pip \
-      wget zstd tzdata \
+      wget zstd tzdata bubblewrap \
     && ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,41 +19,25 @@ ENV PATH=/root/.elan/bin:$PATH
 RUN curl -fsSL https://elan.lean-lang.org/elan-init.sh \
       | sh -s -- -y --default-toolchain leanprover/lean4:${LEAN_VERSION} \
     && lean --version \
-    && lake --version
+    && lake --version \
+    && lake help comparator > /dev/null \
+    && lake help check > /dev/null \
+    && test -x "$(lean --print-prefix)/bin/leanexport" \
+    && test -x "$(lean --print-prefix)/bin/leanchecker"
 
 WORKDIR /workspace
 RUN echo "leanprover/lean4:${LEAN_VERSION}" > lean-toolchain
 COPY lakefile.toml /workspace/lakefile.toml
 
-# Verifiers built on this image run submitted Lean code as an unprivileged
-# user, so that user must be able to read the package cache (lake reads its
-# build outputs and .trace files even when warm) but must not write it. The
-# cache download leaves most files root-only (0600) and some Batteries files
-# owned by uid 1001, which is the uid a later `useradd` receives. Fix both in
-# this same step: changing them in a later layer would store a second copy of
-# every file (about 7.6 GB). Root behaves exactly as before.
-#
-# The download can also leave work for the first build, which an unprivileged
-# build cannot do: at this revision six .hash files lose their leading zero
-# (Lake rewrites them), ProofWidgets lacks widget/package-lock.json.hash (Lake
-# writes it), and modules the cache server lacks get compiled. Building
-# Mathlib once here, as root, does that work up front.
-RUN lake update && lake exe cache get \
+# Warm Mathlib and its dependencies, including any outputs missing from the
+# downloaded cache. Set ownership and read permissions in the same layer so
+# downstream unprivileged verifiers can reuse the completed package cache.
+RUN lake update \
+    && test "$(cat .lake/packages/mathlib/lean-toolchain)" = "$(cat lean-toolchain)" \
+    && lake exe cache get \
     && lake build +Mathlib \
     && chown -R root:root /workspace/.lake/packages \
     && chmod -R o+rX,o-w /workspace/.lake/packages
-
-ENV COMPARATOR_REV=e3dcf3083fc53d44b27a4431fabf7d43181583f5
-RUN git clone https://github.com/leanprover/comparator /tmp/comparator \
-    && cd /tmp/comparator \
-    && git checkout --detach "${COMPARATOR_REV}" \
-    && echo "leanprover/lean4:${LEAN_VERSION}" > lean-toolchain \
-    && lake build lean4export comparator \
-    && install -m 0755 .lake/build/bin/comparator /usr/local/bin/comparator \
-    && install -m 0755 .lake/packages/lean4export/.lake/build/bin/lean4export \
-         /usr/local/bin/lean4export \
-    && install -m 0755 scripts/fake-landrun.sh /usr/local/bin/fake-landrun \
-    && rm -rf /tmp/comparator
 
 ARG INSTALL_LANDRUN=0
 ENV LANDRUN_TAG=v0.1.14
